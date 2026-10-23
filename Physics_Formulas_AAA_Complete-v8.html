@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHYSICS | AAA Interactive Masterclass</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});"></script>
+
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #030508;
+            --text-main: #f0f4f8;
+            --glass-bg: rgba(15, 20, 35, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            
+            --c-mech: #00e5ff;
+            --c-matt: #00ff66;
+            --c-therm: #ff5e00;
+            --c-wave: #ffcc00;
+            --c-em: #b026ff;
+            --c-mod: #ff007f;
+            
+            --active-theme: var(--c-mech);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; scroll-behavior: smooth; font-family: 'Sarabun', sans-serif; }
+        body { color: var(--text-main); background-color: var(--bg-color); overflow-x: hidden; }
+        
+        #webgl-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2; pointer-events: none; }
+        
+        
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed; right: 40px; top: 50%; transform: translateY(-50%); z-index: 100;
+            display: flex; flex-direction: column; gap: 25px; border-right: 1px solid rgba(255, 255, 255, 0.1); padding-right: 20px;
+        }
+        .nav-item { display: flex; align-items: center; justify-content: flex-end; gap: 15px; cursor: pointer; position: relative; opacity: 0.5; transition: all 0.4s ease; }
+        .nav-item:hover, .nav-item.active { opacity: 1; }
+        .nav-text {
+            font-family: 'Orbitron', sans-serif; font-size: 0.75em; font-weight: 700; letter-spacing: 2px;
+            color: var(--text-muted); text-transform: uppercase; transition: all 0.4s ease; transform: translateX(10px); opacity: 0;
+        }
+        .nav-item:hover .nav-text, .nav-item.active .nav-text {
+            transform: translateX(0); opacity: 1; color: var(--active-theme); text-shadow: 0 0 10px rgba(var(--active-theme), 0.5);
+        }
+        .nav-dot {
+            width: 8px; height: 8px; background: #8b9bb4; border-radius: 50%; position: absolute; right: -24px; transition: all 0.4s ease;
+        }
+        .nav-item.active .nav-dot {
+            background: var(--active-theme); box-shadow: 0 0 15px var(--active-theme), 0 0 30px var(--active-theme); transform: scale(1.5);
+        }
+
+        /* Grid & Cards */
+        .main-content { max-width: 1200px; margin: 0 auto; padding: 0 40px; position: relative; z-index: 1; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-bottom: 50px; }
+        
+        .card {
+            background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 16px;
+            padding: 30px; position: relative; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            cursor: pointer; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+        
+        /* Clickable Effect Layer */
+        .card .hover-layer {
+            position: absolute; inset: 0; background: rgba(var(--active-theme), 0.8); z-index: 10;
+            display: flex; justify-content: center; align-items: center; opacity: 0; transition: 0.3s;
+            background: linear-gradient(135deg, rgba(0,0,0,0.8), rgba(0,0,0,0.9));
+        }
+        .card:hover .hover-layer { opacity: 1; }
+        .card .hover-text {
+            font-family: 'Orbitron', sans-serif; font-size: 1.2em; font-weight: 700; color: var(--theme-color);
+            text-shadow: 0 0 15px var(--theme-color); letter-spacing: 2px;
+            transform: translateZ(50px) scale(0.8); transition: 0.4s;
+        }
+        .card:hover .hover-text { transform: translateZ(50px) scale(1); }
+
+        .card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--theme-color); box-shadow: 0 0 15px var(--theme-color);
+            border-radius: 16px 0 0 16px; opacity: 0.8;
+        }
+
+        .card-title { font-family: 'Orbitron', 'Sarabun'; font-weight: 700; font-size: 1.1em; margin-bottom: 15px; color: #fff; transform: translateZ(20px); }
+        .formula { display: block; transform: translateZ(30px); margin-bottom: 10px; font-size: 1.2em; }
+        .sub-math { font-size: 0.85em; color: #a0aab5; display: block; transform: translateZ(30px); }
+
+        
+        
+        /* Hero Section (Enhanced 3D) */
+        .hero { 
+            min-height: 100vh; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; text-align: center;
+            position: relative; z-index: 10;
+        }
+        .hero h1 {
+            font-family: 'Orbitron', 'Sarabun', sans-serif; font-size: clamp(4em, 9vw, 8em); font-weight: 900;
+            line-height: 1.1; margin-bottom: 20px; text-transform: uppercase;
+            color: #ffffff;
+            
+            /* 3D Extrusion Effect */
+            text-shadow: 
+                0px 1px 0px #b0b0b0,
+                0px 2px 0px #a0a0a0,
+                0px 3px 0px #909090,
+                0px 4px 0px #808080,
+                0px 5px 0px #707070,
+                0px 6px 10px rgba(0,0,0,0.5),
+                0px 10px 20px rgba(var(--active-theme), 0.4),
+                0px 0px 30px var(--active-theme);
+                
+            transition: all 0.5s ease;
+            transform: rotateX(10deg) translateZ(0);
+            transform-style: preserve-3d;
+            letter-spacing: 5px;
+        }
+        
+        .hero h1:hover {
+            transform: rotateX(0deg) scale(1.05) translateZ(20px);
+            text-shadow: 
+                0px 1px 0px #c0c0c0,
+                0px 2px 0px #b0b0b0,
+                0px 3px 0px #a0a0a0,
+                0px 4px 0px #909090,
+                0px 5px 0px #808080,
+                0px 10px 15px rgba(0,0,0,0.6),
+                0px 15px 30px rgba(var(--active-theme), 0.6),
+                0px 0px 50px var(--active-theme);
+        }
+
+        .hero h1 span.z-letter {
+            color: var(--active-theme);
+            display: inline-block;
+            animation: pulse-z 2s infinite alternate;
+        }
+
+        @keyframes pulse-z {
+            0% { transform: scale(1); text-shadow: 0 0 10px var(--active-theme), 0 0 20px var(--active-theme); }
+            100% { transform: scale(1.1); text-shadow: 0 0 20px var(--active-theme), 0 0 40px var(--active-theme), 0 0 60px #fff; }
+        }
+
+        .hero .subtitle {
+            font-family: 'Orbitron', 'Sarabun', sans-serif; font-size: clamp(1em, 2vw, 1.5em); 
+            letter-spacing: 8px; color: var(--active-theme); font-weight: 700;
+            text-shadow: 0 0 20px var(--active-theme); margin-bottom: 30px;
+            text-transform: uppercase;
+            background: rgba(0,0,0,0.3);
+            padding: 10px 30px;
+            border-radius: 5px;
+            border-bottom: 2px solid var(--active-theme);
+        }
+        .hero p {
+            font-size: 1.2em; color: #e0e6ed; background: rgba(0,0,0,0.6);
+            padding: 12px 30px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        /* Headings */
+        .chapter { padding: 100px 0; min-height: 80vh; }
+        .chapter h2 { font-size: 2.8em; font-weight: 700; color: #fff; margin-bottom: 50px; text-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        .chapter h2 .highlight { color: var(--theme-color); text-shadow: 0 0 20px var(--theme-color); }
+        .chapter h3 { font-size: 1.5em; color: #fff; margin: 40px 0 20px 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .chapter h3::before { content: '>>'; font-family: 'Orbitron'; color: var(--theme-color); font-size: 0.8em; }
+
+        /* Chapter Exam Button */
+        .btn-exam {
+            display: block; width: 100%; background: rgba(0,0,0,0.5); border: 2px solid var(--theme-color);
+            color: var(--theme-color); text-align: center; padding: 20px; border-radius: 12px;
+            font-family: 'Orbitron', 'Sarabun'; font-size: 1.5em; font-weight: 700; cursor: pointer;
+            letter-spacing: 3px; box-shadow: 0 0 20px rgba(0,0,0,0.5); transition: 0.3s;
+            margin-top: 50px; text-transform: uppercase;
+        }
+        .btn-exam:hover { background: var(--theme-color); color: #000; box-shadow: 0 0 30px var(--theme-color); transform: translateY(-5px); }
+
+        
+        /* Enhanced Modal UI */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(3, 5, 8, 0.95); backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px); z-index: 1000; display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .modal-box {
+            background: linear-gradient(145deg, rgba(15, 20, 35, 0.9), rgba(5, 8, 15, 0.95)); 
+            border: 2px solid var(--active-theme); border-radius: 24px;
+            width: 90%; max-width: 900px; max-height: 85vh; overflow-y: auto;
+            padding: 50px; position: relative; transform: scale(0.95) translateY(30px) rotateX(10deg);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8), 
+                        0 0 40px rgba(var(--active-theme), 0.2), 
+                        inset 0 0 20px rgba(255,255,255,0.05);
+            transform-style: preserve-3d; perspective: 1000px;
+        }
+        .modal-overlay.active .modal-box { transform: scale(1) translateY(0) rotateX(0); }
+
+        .modal-box::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 5px;
+            background: linear-gradient(90deg, transparent, var(--active-theme), transparent);
+            box-shadow: 0 0 20px var(--active-theme); opacity: 0.8;
+        }
+
+        .close-btn { 
+            position: absolute; top: 25px; right: 30px; background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 50%; width: 40px; height: 40px;
+            color: #fff; font-size: 1.5em; cursor: pointer; transition: 0.3s;
+            display: flex; justify-content: center; align-items: center; backdrop-filter: blur(5px);
+        }
+        .close-btn:hover { background: var(--active-theme); color: #000; transform: rotate(90deg) scale(1.1); box-shadow: 0 0 15px var(--active-theme); }
+
+        .quiz-header { border-bottom: 2px solid rgba(255,255,255,0.05); padding-bottom: 25px; margin-bottom: 35px; }
+        .quiz-title { font-family: 'Orbitron', 'Sarabun'; font-size: 1.8em; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #fff; }
+        .quiz-title span { color: var(--active-theme); text-shadow: 0 0 10px rgba(var(--active-theme), 0.5); margin-right: 10px; }
+        .quiz-progress { font-family: 'Orbitron'; font-size: 1.4em; font-weight: 700; color: rgba(255,255,255,0.3); background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); }
+
+        .quiz-level { 
+            display: inline-block; background: linear-gradient(90deg, rgba(var(--active-theme), 0.2), transparent);
+            padding: 8px 20px; border-radius: 8px; font-size: 1em; font-weight: 600; letter-spacing: 1px; margin-bottom: 25px; color: var(--active-theme); border-left: 4px solid var(--active-theme); text-shadow: 0 0 10px rgba(var(--active-theme), 0.4);
+        }
+        .quiz-question { font-size: 1.4em; font-weight: 500; margin-bottom: 40px; line-height: 1.7; color: #e0e6ed; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        
+        .quiz-options { display: flex; flex-direction: column; gap: 18px; margin-bottom: 45px; }
+        .quiz-option {
+            background: rgba(20, 25, 40, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px;
+            padding: 20px 30px; cursor: pointer; font-size: 1.2em; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex; align-items: center; gap: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); position: relative; overflow: hidden;
+        }
+        .quiz-option::before {
+            content: ''; position: absolute; left: 0; top: 0; width: 0%; height: 100%;
+            background: linear-gradient(90deg, rgba(var(--active-theme), 0.1), transparent); transition: width 0.4s ease; z-index: 0;
+        }
+        .quiz-option:hover::before { width: 100%; }
+        .quiz-option > * { position: relative; z-index: 1; }
+        
+        .quiz-option:hover { border-color: rgba(var(--active-theme), 0.5); transform: translateX(10px); box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+        .quiz-option.selected { background: rgba(var(--active-theme), 0.15); border-color: var(--active-theme); box-shadow: 0 0 20px rgba(var(--active-theme), 0.2); transform: scale(1.02); }
+        .quiz-option.correct { background: rgba(0, 255, 100, 0.15); border-color: #00ff66; box-shadow: 0 0 25px rgba(0,255,100,0.2); }
+        .quiz-option.wrong { background: rgba(255, 0, 0, 0.15); border-color: #ff3333; box-shadow: 0 0 25px rgba(255,0,0,0.2); }
+
+        .quiz-option span.choice-label { 
+            display: inline-flex; justify-content: center; align-items: center;
+            width: 35px; height: 35px; border-radius: 8px; background: rgba(0,0,0,0.5);
+            font-family: 'Orbitron'; font-weight: 700; color: var(--active-theme); border: 1px solid rgba(var(--active-theme), 0.3);
+        }
+        .quiz-option.selected span.choice-label { background: var(--active-theme); color: #000; box-shadow: 0 0 15px var(--active-theme); }
+        .quiz-option.correct span.choice-label { background: #00ff66; color: #000; border-color: #00ff66; box-shadow: 0 0 15px #00ff66; }
+        .quiz-option.wrong span.choice-label { background: #ff3333; color: #fff; border-color: #ff3333; box-shadow: 0 0 15px #ff3333; }
+
+        .quiz-action-btn {
+            background: linear-gradient(135deg, var(--active-theme), #ffffff); color: #000; border: none; 
+            padding: 20px 40px; border-radius: 12px; font-family: 'Orbitron', 'Sarabun'; font-size: 1.4em; font-weight: 900; 
+            cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(var(--active-theme), 0.3); display: block; width: 100%; text-align: center;
+            letter-spacing: 2px; position: relative; overflow: hidden;
+        }
+        .quiz-action-btn::after {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: linear-gradient(transparent, rgba(255,255,255,0.3), transparent);
+            transform: rotate(45deg); transition: 0.5s; opacity: 0;
+        }
+        .quiz-action-btn:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 15px 40px rgba(var(--active-theme), 0.6); }
+        .quiz-action-btn:hover::after { opacity: 1; left: 100%; }
+
+        .quiz-explanation {
+            margin-top: 35px; padding: 30px; background: rgba(0, 0, 0, 0.4); 
+            border: 1px solid rgba(0, 255, 100, 0.3); border-left: 6px solid #00ff66;
+            border-radius: 12px; display: none; font-size: 1.15em; line-height: 1.8; color: #d0d8e0;
+            box-shadow: inset 0 0 20px rgba(0,255,100,0.05); position: relative; overflow: hidden;
+        }
+        .quiz-explanation::before {
+            content: 'EXPLANATION'; position: absolute; top: -5px; right: 10px;
+            font-family: 'Orbitron'; font-size: 4em; font-weight: 900; color: rgba(0,255,100,0.03); z-index: 0;
+        }
+        .quiz-explanation.show { display: block; animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
+        .quiz-explanation strong { color: #00ff66; font-size: 1.1em; letter-spacing: 1px; display: block; margin-bottom: 15px; text-shadow: 0 0 10px rgba(0,255,100,0.3); }
+
+        @keyframes slideUpFade { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* KaTeX rendering fixes */
+        .katex { font-size: 1.15em !important; }
+        .modal-box .katex { color: var(--active-theme); text-shadow: 0 0 8px rgba(var(--active-theme), 0.3); }
+        .quiz-explanation .katex { color: #00ff66; text-shadow: 0 0 8px rgba(0,255,100,0.3); }
+/* KaTeX overrides */
+        .katex { font-size: 1.2em !important; }
+        .modal-box .katex { color: #00e5ff; }
+
+        /* Theme assignments */
+        #ch1 { --theme-color: var(--c-mech); }
+        #ch2 { --theme-color: var(--c-matt); }
+        #ch3 { --theme-color: var(--c-therm); }
+        #ch4 { --theme-color: var(--c-wave); }
+        #ch5 { --theme-color: var(--c-em); }
+        #ch6 { --theme-color: var(--c-mod); }
+    
+        /* Mobile / iPad Responsive Fixes */
+        @media (max-width: 1024px) {
+            .hero h1 { font-size: clamp(3em, 8vw, 6em); letter-spacing: 2px; }
+            .sidebar { 
+                top: auto; bottom: 20px; right: 50%; transform: translateX(50%); 
+                flex-direction: row; border-right: none; padding-right: 0; gap: 15px; 
+                background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 30px;
+                border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+            }
+            .nav-item { justify-content: center; }
+            .nav-text { display: none; } /* Hide text on mobile/tablet to save space */
+            .nav-dot { position: relative; right: auto; width: 12px; height: 12px; margin: 0 5px; }
+            
+            .main-content { padding: 0 20px; }
+            .chapter { padding: 60px 0; }
+            .grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
+            
+            .modal-box { width: 95%; padding: 30px; max-height: 90vh; }
+            .quiz-option { padding: 15px 20px; font-size: 1.1em; }
+            .quiz-action-btn { padding: 15px 30px; font-size: 1.2em; }
+        }
+        
+        /* Touch Device Optimizations */
+        @media (hover: none) {
+            .card .hover-layer { opacity: 1; background: transparent; pointer-events: none; }
+            .card .hover-text { opacity: 0; } /* Hide the 'START EXAM' text on touch devices, just let them tap */
+            .card:active { transform: scale(0.98); }
+        }
+        
+        /* Prevent text selection on buttons/cards */
+        .card, .nav-item, .quiz-option, .quiz-action-btn, .close-btn {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+</style>
+</head>
+<body>
+
+    <div id="webgl-container"></div>
+
+    
+    <nav class="sidebar">
+        <div class="nav-item active" data-target="hero"><span class="nav-text">HOME</span><span class="nav-dot"></span></div>
+        <div class="nav-item" data-target="ch1"><span class="nav-text">01. MECHANICS</span><span class="nav-dot"></span></div>
+        <div class="nav-item" data-target="ch2"><span class="nav-text">02. MATTER</span><span class="nav-dot"></span></div>
+        <div class="nav-item" data-target="ch3"><span class="nav-text">03. THERMO</span><span class="nav-dot"></span></div>
+        <div class="nav-item" data-target="ch4"><span class="nav-text">04. WAVES</span><span class="nav-dot"></span></div>
+        <div class="nav-item" data-target="ch5"><span class="nav-text">05. ELECTROMAG</span><span class="nav-dot"></span></div>
+        <div class="nav-item" data-target="ch6"><span class="nav-text">06. MODERN</span><span class="nav-dot"></span></div>
+    </nav>
+
+    <div class="main-content">
+        <section class="hero">
+            <h1>PHYSIC<span class="z-letter">Z</span><br>FORMULAS</h1>
+            <div class="subtitle">100% COMPLETE MASTERCLASS</div>
+            <p style="margin-top: 20px; font-size: 1.2em; color: #a0aab5;">คลิกที่การ์ดสูตรเพื่อเข้าสู่ "โหมดตะลุยโจทย์" (เรียงง่ายไปยาก + A-Level/TPAT3)</p>
+        </section>
+
+        
+        <!-- CH1 -->
+        <section id="ch1" class="chapter">
+            <div class="chapter-header gs-reveal"><div class="chapter-num">01</div><h2><span class="highlight">กลศาสตร์</span> (Mechanics)</h2></div>
+            
+            <h3 class="gs-reveal">1.1 การเคลื่อนที่แนวตรง (1 มิติ)</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c1_1', 'สูตรการกระจัด (ไม่มี s)')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเร่งคงที่ (ไม่มี s)</div><div class="formula">$$v = u + at$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_1', 'สูตรการกระจัด (ไม่มี a)')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเร่งคงที่ (ไม่มี a)</div><div class="formula">$$s = \left(\frac{u+v}{2}\right)t$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_1', 'สูตรการกระจัด (ไม่มี v)')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเร่งคงที่ (ไม่มี v)</div><div class="formula">$$s = ut + \frac{1}{2}at^2$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_1', 'สูตรความเร็ว (ไม่มี t)')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเร่งคงที่ (ไม่มี t)</div><div class="formula">$$v^2 = u^2 + 2as$$</div></div>
+            </div>
+
+            <h3 class="gs-reveal">1.2 แรงและกฎการเคลื่อนที่ของนิวตัน</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c1_5', 'กฎข้อที่ 1')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กฎข้อ 1 นิวตัน</div><div class="formula">$$\Sigma F = 0$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_5', 'กฎข้อที่ 2')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กฎข้อ 2 นิวตัน</div><div class="formula">$$\Sigma F = ma$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_5', 'กฎข้อที่ 3')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กฎข้อ 3 นิวตัน</div><div class="formula">$$F_{action} = -F_{reaction}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_5', 'น้ำหนัก')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">น้ำหนัก</div><div class="formula">$$W = mg$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_6', 'แรงเสียดทาน')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">แรงเสียดทาน</div><div class="formula">$$f_s \le \mu_s N, \; f_k = \mu_k N$$</div></div>
+            </div>
+
+            <h3 class="gs-reveal">1.3 งานและพลังงาน</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c1_7', 'งาน')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">งาน</div><div class="formula">$$W = F \cdot s = Fs \cos \theta$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_7', 'พลังงานจลน์')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">พลังงานจลน์</div><div class="formula">$$E_k = \frac{1}{2}mv^2$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_7', 'พลังงานศักย์โน้มถ่วง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">พลังงานศักย์โน้มถ่วง</div><div class="formula">$$E_p = mgh$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_7', 'พลังงานศักย์ยืดหยุ่น')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">พลังงานศักย์ยืดหยุ่น</div><div class="formula">$$E_{ps} = \frac{1}{2}kx^2$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_7', 'กฎการอนุรักษ์พลังงาน')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">อนุรักษ์พลังงาน</div><div class="formula">$$E_1 + W = E_2$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_7', 'กำลัง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กำลัง</div><div class="formula">$$P = \frac{W}{t} = Fv$$</div></div>
+            </div>
+
+            <h3 class="gs-reveal">1.4 โมเมนตัมและการชน</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c1_1', 'โมเมนตัม')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">โมเมนตัม</div><div class="formula">$$p = mv$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_1', 'การดลและแรงดล')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">การดลและแรงดล</div><div class="formula">$$I = \Delta p = F \Delta t = mv - mu$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_1', 'อนุรักษ์โมเมนตัม')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">อนุรักษ์โมเมนตัม</div><div class="formula">$$m_1u_1 + m_2u_2 = m_1v_1 + m_2v_2$$</div></div>
+            </div>
+
+            <h3 class="gs-reveal">1.5 การเคลื่อนที่แบบโพรเจกไทล์</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c1_1', 'แกน X')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">แกน X (ความเร็วคงที่)</div><div class="formula">$$v_x = u \cos \theta, \; S_x = u_x t$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_1', 'แกน Y')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">แกน Y (ความเร่ง g)</div><div class="formula">$$v_y = u_y - gt, \; S_y = u_y t - \frac{1}{2}gt^2$$</div></div>
+            </div>
+
+            <h3 class="gs-reveal">1.6 การเคลื่อนที่แบบวงกลม</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c1_8', 'ความเร็วเชิงมุม')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเร็วเชิงมุม</div><div class="formula">$$\omega = \frac{\theta}{t} = \frac{2\pi}{T} = 2\pi f$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_8', 'ความเร็วเชิงเส้น')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเร็วเชิงเส้น</div><div class="formula">$$v = \omega r$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_8', 'ความเร่งสู่ศูนย์กลาง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเร่งสู่ศูนย์กลาง</div><div class="formula">$$a_c = \frac{v^2}{r} = \omega^2 r$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_8', 'แรงสู่ศูนย์กลาง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">แรงสู่ศูนย์กลาง</div><div class="formula">$$F_c = \frac{mv^2}{r} = m \omega^2 r$$</div></div>
+            </div>
+
+            <h3 class="gs-reveal">1.7 การเคลื่อนที่แบบฮาร์มอนิกอย่างง่าย (SHM)</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c1_10', 'การกระจัด')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">การกระจัด</div><div class="formula">$$x = A \cos(\omega t)$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_10', 'ความเร็ว')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเร็ว</div><div class="formula">$$v = \pm \omega \sqrt{A^2 - x^2}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_10', 'ความเร่ง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเร่ง</div><div class="formula">$$a = -\omega^2 x$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_10', 'คาบของสปริง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">คาบของสปริง</div><div class="formula">$$T = 2\pi \sqrt{\frac{m}{k}}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_10', 'คาบลูกตุ้มนาฬิกา')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">คาบลูกตุ้มนาฬิกา</div><div class="formula">$$T = 2\pi \sqrt{\frac{L}{g}}$$</div></div>
+            </div>
+
+            <h3 class="gs-reveal">1.8 การหมุน</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c1_9', 'ทอร์ก')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ทอร์ก</div><div class="formula">$$\tau = F \times r = I \alpha$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_9', 'โมเมนต์ความเฉื่อย')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">โมเมนต์ความเฉื่อย</div><div class="formula">$$I = \Sigma mr^2$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_9', 'โมเมนตัมเชิงมุม')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">โมเมนตัมเชิงมุม</div><div class="formula">$$L = I \omega = mvr$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c1_9', 'พลังงานจลน์ในการหมุน')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">พลังงานจลน์ในการหมุน</div><div class="formula">$$E_k = \frac{1}{2}I \omega^2$$</div></div>
+            </div>
+            
+            <button class="btn-exam gs-reveal" onclick="openQuiz('chap1', 'ข้อสอบรวมบท: กลศาสตร์')">🔥 [ BATTLE ] CHAPTER 1 FINAL EXAM : MECHANICS 🔥</button>
+        </section>
+
+
+        <!-- CH2 -->
+        <section id="ch2" class="chapter">
+            <div class="chapter-header gs-reveal"><div class="chapter-num">02</div><h2><span class="highlight">สมบัติเชิงกลของสสาร</span> (Properties of Matter)</h2></div>
+            
+            <h3 class="gs-reveal">2.1 ความยืดหยุ่นของของแข็ง</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c2_1', 'ความเค้น')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเค้น (Stress)</div><div class="formula">$$\sigma = \frac{F}{A}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c2_1', 'ความเครียด')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเครียด (Strain)</div><div class="formula">$$\epsilon = \frac{\Delta L}{L_0}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c2_1', 'มอดูลัสของยัง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">มอดูลัสของยัง</div><div class="formula">$$Y = \frac{\sigma}{\epsilon} = \frac{FL_0}{A \Delta L}$$</div></div>
+            </div>
+            
+            <h3 class="gs-reveal">2.2 กลศาสตร์ของไหล</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c2_2', 'ความหนาแน่น')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความหนาแน่น</div><div class="formula">$$\rho = \frac{m}{V}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c2_2', 'ความดัน')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความดัน</div><div class="formula">$$P = \frac{F}{A}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c2_2', 'ความดันสัมบูรณ์')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความดันสัมบูรณ์</div><div class="formula">$$P = P_0 + \rho gh$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c2_2', 'แรงพยุง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">แรงพยุง</div><div class="formula">$$F_B = \rho_{fluid} V_{submerged} g$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c2_3', 'สมการความต่อเนื่อง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">สมการความต่อเนื่อง</div><div class="formula">$$A_1v_1 = A_2v_2$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c2_3', 'สมการแบร์นูลลี')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">สมการแบร์นูลลี</div><div class="formula">$$P + \frac{1}{2}\rho v^2 + \rho gh = \text{const}$$</div></div>
+            </div>
+            
+            <button class="btn-exam gs-reveal" onclick="openQuiz('chap2', 'ข้อสอบรวมบท: สมบัติของสสาร')">🔥 [ BATTLE ] CHAPTER 2 FINAL EXAM : MATTER 🔥</button>
+        </section>
+
+
+        <!-- CH3 -->
+        <section id="ch3" class="chapter">
+            <div class="chapter-header gs-reveal"><div class="chapter-num">03</div><h2><span class="highlight">ความร้อนและอุณหพลศาสตร์</span> (Heat & Thermodynamics)</h2></div>
+            
+            <h3 class="gs-reveal">3.1 ความร้อน</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c3_1', 'เปลี่ยนอุณหภูมิ')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">เปลี่ยนอุณหภูมิ</div><div class="formula">$$Q = mc\Delta T = C\Delta T$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c3_1', 'เปลี่ยนสถานะ')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">เปลี่ยนสถานะ</div><div class="formula">$$Q = mL$$</div></div>
+            </div>
+            
+            <h3 class="gs-reveal">3.2 แก๊สอุดมคติ</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c3_2', 'กฎของแก๊ส')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กฎของแก๊ส</div><div class="formula">$$PV = nRT = N k_B T$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c3_2', 'พลังงานจลน์เฉลี่ย')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">พลังงานจลน์เฉลี่ย</div><div class="formula">$$E_k = \frac{3}{2}k_B T = \frac{3}{2} \frac{PV}{N}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c3_2', 'Vrms')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเร็ว Vrms</div><div class="formula">$$v_{rms} = \sqrt{\frac{3RT}{M}} = \sqrt{\frac{3P}{\rho}}$$</div></div>
+            </div>
+            
+            <h3 class="gs-reveal">3.3 อุณหพลศาสตร์</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c3_3', 'กฎข้อที่ 1')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กฎข้อ 1 อุณหพลศาสตร์</div><div class="formula">$$Q = \Delta U + W$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c3_3', 'งานที่ทำโดยแก๊ส')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">งานที่ทำโดยแก๊ส</div><div class="formula">$$W = P \Delta V$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c3_3', 'พลังงานภายในระบบ')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">พลังงานภายใน (อะตอมเดี่ยว)</div><div class="formula">$$U = \frac{3}{2}nRT = \frac{3}{2}PV$$</div></div>
+            </div>
+            
+            <button class="btn-exam gs-reveal" onclick="openQuiz('chap3', 'ข้อสอบรวมบท: อุณหพลศาสตร์')">🔥 [ BATTLE ] CHAPTER 3 FINAL EXAM : THERMO 🔥</button>
+        </section>
+
+
+        <!-- CH4 -->
+        <section id="ch4" class="chapter">
+            <div class="chapter-header gs-reveal"><div class="chapter-num">04</div><h2><span class="highlight">คลื่น เสียง และแสง</span> (Waves, Sound & Optics)</h2></div>
+            
+            <h3 class="gs-reveal">4.1 คลื่นกล</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c4_1', 'อัตราเร็วคลื่น')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">อัตราเร็วคลื่น</div><div class="formula">$$v = f\lambda = \frac{\lambda}{T}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c4_1', 'อัตราเร็วคลื่นเชือก')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">อัตราเร็วคลื่นในเส้นเชือก</div><div class="formula">$$v = \sqrt{\frac{T}{\mu}}$$</div></div>
+            </div>
+            
+            <h3 class="gs-reveal">4.2 เสียง</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c4_2', 'อัตราเร็วเสียง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">อัตราเร็วเสียงในอากาศ</div><div class="formula">$$v = 331 + 0.6T_c$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c4_2', 'ความเข้มเสียง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความเข้มเสียง</div><div class="formula">$$I = \frac{P}{A} = \frac{P}{4\pi r^2}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c4_2', 'ระดับเสียง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ระดับเสียง (เดซิเบล)</div><div class="formula">$$\beta = 10 \log \left(\frac{I}{I_0}\right)$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c4_2', 'บีตส์')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความถี่บีตส์</div><div class="formula">$$f_b = |f_1 - f_2|$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c4_2', 'ดอปเพลอร์')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ปรากฏการณ์ดอปเพลอร์</div><div class="formula">$$f_o = f_s \left(\frac{v \pm v_o}{v \mp v_s}\right)$$</div></div>
+            </div>
+            
+            <h3 class="gs-reveal">4.3 แสงและทัศนอุปกรณ์</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c4_3', 'กฎการหักเห')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กฎการหักเห (Snell)</div><div class="formula">$$\frac{\sin \theta_1}{\sin \theta_2} = \frac{v_1}{v_2} = \frac{\lambda_1}{\lambda_2} = \frac{n_2}{n_1}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c4_3', 'มุมวิกฤต')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">มุมวิกฤต</div><div class="formula">$$\sin \theta_c = \frac{n_2}{n_1}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c4_3', 'กระจกและเลนส์')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">สมการกระจกและเลนส์</div><div class="formula">$$\frac{1}{f} = \frac{1}{s} + \frac{1}{s'}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c4_3', 'กำลังขยาย')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กำลังขยาย</div><div class="formula">$$m = \frac{y'}{y} = -\frac{s'}{s} = \frac{f}{s-f}$$</div></div>
+            </div>
+            
+            <h3 class="gs-reveal">4.4 ฟิสิกส์เชิงภาพ (Physical Optics)</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c4_4', 'สลิตคู่')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">สลิตคู่ (แทรกสอด)</div><div class="formula">$$d \sin \theta = n\lambda, \; \frac{dx}{L} = n\lambda$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c4_4', 'สลิตเดี่ยว')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">สลิตเดี่ยว (เลี้ยวเบน)</div><div class="formula">$$a \sin \theta = n\lambda, \; \frac{ax}{L} = n\lambda$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c4_4', 'เกรตติง')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">เกรตติง (แถบสว่าง)</div><div class="formula">$$d \sin \theta = n\lambda$$</div></div>
+            </div>
+            
+            <button class="btn-exam gs-reveal" onclick="openQuiz('chap4', 'ข้อสอบรวมบท: คลื่น เสียง แสง')">🔥 [ BATTLE ] CHAPTER 4 FINAL EXAM : WAVES & OPTICS 🔥</button>
+        </section>
+
+
+        <!-- CH5 -->
+        <section id="ch5" class="chapter">
+            <div class="chapter-header gs-reveal"><div class="chapter-num">05</div><h2><span class="highlight">ไฟฟ้าและแม่เหล็ก</span> (Electricity & Magnetism)</h2></div>
+            
+            <h3 class="gs-reveal">5.1 ไฟฟ้าสถิต</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c5_1', 'แรงคูลอมบ์')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">แรงคูลอมบ์</div><div class="formula">$$F = k\frac{q_1q_2}{r^2}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_1', 'สนามไฟฟ้า')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">สนามไฟฟ้า</div><div class="formula">$$E = \frac{F}{q} = k\frac{Q}{r^2}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_1', 'ศักย์ไฟฟ้า')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ศักย์ไฟฟ้า</div><div class="formula">$$V = k\frac{Q}{r}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_1', 'พลังงานศักย์ไฟฟ้า')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">พลังงานศักย์ไฟฟ้า</div><div class="formula">$$U = qV = k\frac{q_1q_2}{r}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_1', 'ความจุไฟฟ้า')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความจุไฟฟ้า</div><div class="formula">$$C = \frac{Q}{V}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_1', 'ตัวเก็บประจุแผ่นขนาน')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ตัวเก็บประจุแผ่นขนาน</div><div class="formula">$$C = \frac{\varepsilon_0 A}{d}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_1', 'พลังงานสะสม')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">พลังงานสะสมในตัวเก็บประจุ</div><div class="formula">$$U = \frac{1}{2}QV = \frac{1}{2}CV^2 = \frac{Q^2}{2C}$$</div></div>
+            </div>
+
+            <h3 class="gs-reveal">5.2 ไฟฟ้ากระแสตรง</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c5_2', 'กระแสไฟฟ้า')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กระแสไฟฟ้า</div><div class="formula">$$I = \frac{\Delta Q}{\Delta t} = nevA$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_2', 'กฎของโอห์ม')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กฎของโอห์ม</div><div class="formula">$$V = IR$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_2', 'ความต้านทาน')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความต้านทาน</div><div class="formula">$$R = \rho\frac{L}{A}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_2', 'กำลังไฟฟ้า')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กำลังไฟฟ้า</div><div class="formula">$$P = IV = I^2R = \frac{V^2}{R}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_2', 'แรงเคลื่อนไฟฟ้า')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">แรงเคลื่อนไฟฟ้า (EMF)</div><div class="formula">$$E = I(R+r)$$</div></div>
+            </div>
+            
+            <h3 class="gs-reveal">5.3 แม่เหล็กไฟฟ้า</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c5_3', 'แรงแม่เหล็กกระทำต่อประจุ')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">แรงแม่เหล็กกระทำต่อประจุ</div><div class="formula">$$F = qvB \sin \theta$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_3', 'รัศมีการเคลื่อนที่')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">รัศมีวงโคจรประจุ</div><div class="formula">$$r = \frac{mv}{qB}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_3', 'แรงแม่เหล็กต่อลวด')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">แรงแม่เหล็กต่อลวดตัวนำ</div><div class="formula">$$F = ILB \sin \theta$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_3', 'ฟลักซ์แม่เหล็ก')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ฟลักซ์แม่เหล็ก</div><div class="formula">$$\Phi = BA \cos \theta$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_3', 'กฎฟาราเดย์')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">แรงเคลื่อนไฟฟ้าเหนี่ยวนำ</div><div class="formula">$$\varepsilon = -N\frac{\Delta \Phi}{\Delta t}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_3', 'หม้อแปลงไฟฟ้า')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">หม้อแปลงไฟฟ้า (อุดมคติ)</div><div class="formula">$$\frac{V_1}{V_2} = \frac{N_1}{N_2} = \frac{I_2}{I_1}$$</div></div>
+            </div>
+            
+            <h3 class="gs-reveal">5.4 ไฟฟ้ากระแสสลับ</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c5_4', 'ค่ายังผล')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ค่ายังผล (RMS)</div><div class="formula">$$V_{rms} = \frac{V_{max}}{\sqrt{2}}, \; I_{rms} = \frac{I_{max}}{\sqrt{2}}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_4', 'ความต้านทานเชิงเหนี่ยวนำ')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความต้านทานเชิงเหนี่ยวนำ (L)</div><div class="formula">$$X_L = \omega L = 2\pi fL$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_4', 'ความต้านทานเชิงความจุ')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความต้านทานเชิงความจุ (C)</div><div class="formula">$$X_C = \frac{1}{\omega C} = \frac{1}{2\pi fC}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c5_4', 'ความต้านทานเชิงซ้อน')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความต้านทานเชิงซ้อน (Z)</div><div class="formula">$$Z = \sqrt{R^2 + (X_L - X_C)^2}$$</div></div>
+            </div>
+            
+            <button class="btn-exam gs-reveal" onclick="openQuiz('chap5', 'ข้อสอบรวมบท: แม่เหล็กไฟฟ้า')">🔥 [ BATTLE ] CHAPTER 5 FINAL EXAM : ELECTROMAGNETISM 🔥</button>
+        </section>
+
+
+        <!-- CH6 -->
+        <section id="ch6" class="chapter">
+            <div class="chapter-header gs-reveal"><div class="chapter-num">06</div><h2><span class="highlight">ฟิสิกส์ยุคใหม่</span> (Modern Physics)</h2></div>
+            
+            <h3 class="gs-reveal">6.1 ฟิสิกส์อะตอม</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c6_1', 'พลังงานควอนตัม')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">พลังงานควอนตัม (โฟตอน)</div><div class="formula">$$E = hf = \frac{hc}{\lambda}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c6_1', 'โฟโตอิเล็กทริก')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">โฟโตอิเล็กทริก</div><div class="formula">$$E_k(max) = hf - W$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c6_2', 'ระดับพลังงาน')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ระดับพลังงานไฮโดรเจน (Bohr)</div><div class="formula">$$E_n = -\frac{13.6}{n^2} \, \text{eV}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c6_1', 'เดอบรอยล์')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ความยาวคลื่นเดอบรอยล์</div><div class="formula">$$\lambda = \frac{h}{p} = \frac{h}{mv}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c6_1', 'ไฮเซนเบิร์ก')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">หลักความไม่แน่นอนไฮเซนเบิร์ก</div><div class="formula">$$\Delta x \Delta p \ge \frac{h}{4\pi}$$</div></div>
+            </div>
+            
+            <h3 class="gs-reveal">6.2 ฟิสิกส์นิวเคลียร์</h3>
+            <div class="grid">
+                <div class="card gs-card" onclick="openQuiz('c6_3', 'พลังงานมวลสาร')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">พลังงานมวลสาร (Einstein)</div><div class="formula">$$E = \Delta mc^2$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c6_3', 'กัมมันตภาพ')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">กัมมันตภาพ (Activity)</div><div class="formula">$$A = \lambda N$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c6_3', 'การสลายตัว')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">การสลายตัวของธาตุกัมมันตรังสี</div><div class="formula">$$N = N_0 e^{-\lambda t}, \; A = A_0 e^{-\lambda t}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c6_3', 'ครึ่งชีวิต')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">ครึ่งชีวิต (Half-life)</div><div class="formula">$$T_{1/2} = \frac{\ln 2}{\lambda} = \frac{0.693}{\lambda}$$</div></div>
+                <div class="card gs-card" onclick="openQuiz('c6_3', 'มวลที่เหลือ')"><div class="hover-layer"><div class="hover-text">START EXAM 🎯</div></div><div class="card-title">มวลที่เหลือจากการสลาย</div><div class="formula">$$N = \frac{N_0}{2^n}, \; n = \frac{t}{T_{1/2}}$$</div></div>
+            </div>
+            
+            <button class="btn-exam gs-reveal" onclick="openQuiz('chap6', 'ข้อสอบรวมบท: ฟิสิกส์ยุคใหม่')">🔥 [ BATTLE ] CHAPTER 6 FINAL EXAM : MODERN PHYSICS 🔥</button>
+        </section>
+
+    </div>
+
+    <!-- MODAL UI FOR QUIZ -->
+    <div class="modal-overlay" id="quizModal">
+        <div class="modal-box">
+            <button class="close-btn" onclick="closeQuiz()">✕</button>
+            
+            <div class="quiz-header">
+                <div class="quiz-title" id="quizTitle">TEST SYSTEM</div>
+                <div class="quiz-progress" id="quizProgress">1 / 5</div>
+            </div>
+            
+            <div class="quiz-level" id="quizLevel">⭐ EASY</div>
+            <div class="quiz-question" id="quizQuestion">Question Text...</div>
+            
+            <div class="quiz-options" id="quizOptions">
+                <!-- Injected via JS -->
+            </div>
+            
+            <button class="quiz-action-btn" id="quizActionBtn" onclick="handleQuizAction()">CHECK ANSWER</button>
+            <div class="quiz-explanation" id="quizExplanation">Explanation here...</div>
+        </div>
+    </div>
+
+    <script>
+        const quizDB = {"c1_1": [{"level": "⭐ EASY (พื้นฐาน)", "question": "รถยนต์คันหนึ่งเริ่มเคลื่อนที่จากหยุดนิ่งด้วยความเร่งคงที่ $2 \\text{ m/s}^2$ เมื่อเวลาผ่านไป $5$ วินาที รถคันนี้จะมีความเร็วเท่าใด?", "choices": ["$5 \\text{ m/s}$", "$10 \\text{ m/s}$", "$20 \\text{ m/s}$", "$25 \\text{ m/s}$"], "answer": 1, "explanation": "จากสมการ $v = u + at$ <br>แทนค่า $u = 0$ (หยุดนิ่ง), $a = 2$, $t = 5$ <br>จะได้ $v = 0 + (2)(5) = 10 \\text{ m/s}$"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "รถไฟวิ่งด้วยความเร็ว $30 \\text{ m/s}$ คนขับเห็นสิ่งกีดขวางจึงเหยียบเบรก ทำให้เกิดความหน่วง $3 \\text{ m/s}^2$ รถไฟจะใช้เวลาเท่าใดจึงจะหยุดสนิท?", "choices": ["$5 \\text{ s}$", "$10 \\text{ s}$", "$15 \\text{ s}$", "$90 \\text{ s}$"], "answer": 1, "explanation": "หยุดสนิทแปลว่าความเร็วปลาย $v = 0$ และความหน่วงคือ $a = -3$ <br>จาก $v = u + at \\Rightarrow 0 = 30 + (-3)t \\Rightarrow 3t = 30 \\Rightarrow t = 10 \\text{ s}$"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์กราฟ)", "question": "วัตถุเคลื่อนที่ใน 1 มิติ มีสมการความเร็วเป็น $v(t) = 4t - 12$ (หน่วย SI) วัตถุนี้จะหยุดนิ่งชั่วขณะที่เวลา $t$ เท่าใด?", "choices": ["$2 \\text{ s}$", "$3 \\text{ s}$", "$4 \\text{ s}$", "$12 \\text{ s}$"], "answer": 1, "explanation": "วัตถุหยุดนิ่งชั่วขณะหมายถึง $v = 0$ <br>แทนค่า $0 = 4t - 12 \\Rightarrow 4t = 12 \\Rightarrow t = 3 \\text{ s}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) วัตถุ A และ B เริ่มเคลื่อนที่พร้อมกันจากหยุดนิ่ง A มีความเร่ง $a$ และ B มีความเร่ง $2a$ เมื่อเวลาผ่านไป $t$ อัตราส่วนความเร็วของ B ต่อ A ($v_B : v_A$) เป็นเท่าใด?", "choices": ["$1 : 1$", "$1 : 2$", "$2 : 1$", "$4 : 1$"], "answer": 2, "explanation": "ความเร็ว $v = at$ <br>สำหรับ A: $v_A = a \\cdot t$ <br>สำหรับ B: $v_B = (2a) \\cdot t$ <br>อัตราส่วน $\\frac{v_B}{v_A} = \\frac{2at}{at} = 2 : 1$"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรออกแบบระบบเบรกอัตโนมัติ (AEB) หากรถยนต์วิ่งด้วยความเร็ว $v$ เซ็นเซอร์สั่งเบรกกะทันหันด้วยความหน่วงสูงสุด $a_{max}$ สมการใดคือ \"เวลาตอบสนองรวมที่สั้นที่สุด\" ก่อนที่รถจะหยุดนิ่ง? (สมมติระบบเซ็นเซอร์หน่วงเวลา $t_0$ วินาทีก่อนเบรกทำงาน)", "choices": ["$t_0 + \\frac{v}{a_{max}}$", "$\\frac{v}{a_{max}} - t_0$", "$t_0 + \\frac{v^2}{2a_{max}}$", "$\\frac{v^2}{2a_{max}}$"], "answer": 0, "explanation": "เวลารวม = เวลาหน่วง (delay) + เวลาที่ใช้เบรกจนหยุด <br>เวลาเบรกหาจาก $0 = v - a_{max}t \\Rightarrow t = \\frac{v}{a_{max}}$ <br>ดังนั้นเวลารวมคือ $t_0 + \\frac{v}{a_{max}}$"}], "c1_2": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง สูตรการกระจัด (ไม่มี a) หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง สูตรการกระจัด (ไม่มี a) พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ สูตรการกระจัด (ไม่มี a) ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ สูตรการกระจัด (ไม่มี a) ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ สูตรการกระจัด (ไม่มี a) เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c1_3": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง สูตรการกระจัด (ไม่มี v) หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง สูตรการกระจัด (ไม่มี v) พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ สูตรการกระจัด (ไม่มี v) ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ สูตรการกระจัด (ไม่มี v) ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ สูตรการกระจัด (ไม่มี v) เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c1_4": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง สูตรความเร็ว (ไม่มี t) หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง สูตรความเร็ว (ไม่มี t) พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ สูตรความเร็ว (ไม่มี t) ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ สูตรความเร็ว (ไม่มี t) ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ สูตรความเร็ว (ไม่มี t) เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c1_5": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง กฎการเคลื่อนที่ของนิวตัน หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง กฎการเคลื่อนที่ของนิวตัน พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ กฎการเคลื่อนที่ของนิวตัน ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ กฎการเคลื่อนที่ของนิวตัน ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ กฎการเคลื่อนที่ของนิวตัน เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c1_6": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง แรงเสียดทาน (สถิตและจลน์) หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง แรงเสียดทาน (สถิตและจลน์) พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ แรงเสียดทาน (สถิตและจลน์) ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ แรงเสียดทาน (สถิตและจลน์) ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ แรงเสียดทาน (สถิตและจลน์) เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c1_7": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง งานและพลังงานกล หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง งานและพลังงานกล พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ งานและพลังงานกล ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ งานและพลังงานกล ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ งานและพลังงานกล เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c1_8": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง การเคลื่อนที่แบบวงกลม หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง การเคลื่อนที่แบบวงกลม พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ การเคลื่อนที่แบบวงกลม ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ การเคลื่อนที่แบบวงกลม ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ การเคลื่อนที่แบบวงกลม เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c1_9": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง การหมุนและทอร์ก หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง การหมุนและทอร์ก พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ การหมุนและทอร์ก ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ การหมุนและทอร์ก ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ การหมุนและทอร์ก เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c1_10": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง การสั่นแบบ SHM หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง การสั่นแบบ SHM พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ การสั่นแบบ SHM ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ การสั่นแบบ SHM ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ การสั่นแบบ SHM เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c2_1": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง ความยืดหยุ่นของแข็ง หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง ความยืดหยุ่นของแข็ง พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ ความยืดหยุ่นของแข็ง ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ ความยืดหยุ่นของแข็ง ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ ความยืดหยุ่นของแข็ง เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c2_2": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง ความดันและแรงพยุง หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง ความดันและแรงพยุง พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ ความดันและแรงพยุง ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ ความดันและแรงพยุง ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ ความดันและแรงพยุง เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c2_3": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง พลศาสตร์ของไหล หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง พลศาสตร์ของไหล พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ พลศาสตร์ของไหล ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ พลศาสตร์ของไหล ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ พลศาสตร์ของไหล เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c3_1": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง ความร้อนและการเปลี่ยนสถานะ หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง ความร้อนและการเปลี่ยนสถานะ พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ ความร้อนและการเปลี่ยนสถานะ ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ ความร้อนและการเปลี่ยนสถานะ ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ ความร้อนและการเปลี่ยนสถานะ เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c3_2": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง กฎแก๊สอุดมคติ หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง กฎแก๊สอุดมคติ พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ กฎแก๊สอุดมคติ ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ กฎแก๊สอุดมคติ ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ กฎแก๊สอุดมคติ เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c3_3": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง กฎอุณหพลศาสตร์ หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง กฎอุณหพลศาสตร์ พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ กฎอุณหพลศาสตร์ ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ กฎอุณหพลศาสตร์ ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ กฎอุณหพลศาสตร์ เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c4_1": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง สมการคลื่นกล หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง สมการคลื่นกล พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ สมการคลื่นกล ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ สมการคลื่นกล ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ สมการคลื่นกล เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c4_2": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง เสียงและดอปเพลอร์ หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง เสียงและดอปเพลอร์ พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ เสียงและดอปเพลอร์ ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ เสียงและดอปเพลอร์ ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ เสียงและดอปเพลอร์ เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c4_3": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง แสงเชิงเรขาคณิต หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง แสงเชิงเรขาคณิต พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ แสงเชิงเรขาคณิต ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ แสงเชิงเรขาคณิต ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ แสงเชิงเรขาคณิต เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c4_4": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง แสงเชิงฟิสิกส์ (สลิต/เกรตติง) หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง แสงเชิงฟิสิกส์ (สลิต/เกรตติง) พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ แสงเชิงฟิสิกส์ (สลิต/เกรตติง) ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ แสงเชิงฟิสิกส์ (สลิต/เกรตติง) ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ แสงเชิงฟิสิกส์ (สลิต/เกรตติง) เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c5_1": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง แรงและสนามไฟฟ้าสถิต หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง แรงและสนามไฟฟ้าสถิต พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ แรงและสนามไฟฟ้าสถิต ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ แรงและสนามไฟฟ้าสถิต ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ แรงและสนามไฟฟ้าสถิต เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c5_2": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง ไฟฟ้ากระแสตรง (DC) หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง ไฟฟ้ากระแสตรง (DC) พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ ไฟฟ้ากระแสตรง (DC) ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ ไฟฟ้ากระแสตรง (DC) ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ ไฟฟ้ากระแสตรง (DC) เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c5_3": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง แม่เหล็กและการเหนี่ยวนำ หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง แม่เหล็กและการเหนี่ยวนำ พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ แม่เหล็กและการเหนี่ยวนำ ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ แม่เหล็กและการเหนี่ยวนำ ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ แม่เหล็กและการเหนี่ยวนำ เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c5_4": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง ไฟฟ้ากระแสสลับ (AC) หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง ไฟฟ้ากระแสสลับ (AC) พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ ไฟฟ้ากระแสสลับ (AC) ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ ไฟฟ้ากระแสสลับ (AC) ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ ไฟฟ้ากระแสสลับ (AC) เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c6_1": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง โฟโตอิเล็กทริกและควอนตัม หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง โฟโตอิเล็กทริกและควอนตัม พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ โฟโตอิเล็กทริกและควอนตัม ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ โฟโตอิเล็กทริกและควอนตัม ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ โฟโตอิเล็กทริกและควอนตัม เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c6_2": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง แบบจำลองอะตอมบอร์ หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง แบบจำลองอะตอมบอร์ พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ แบบจำลองอะตอมบอร์ ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ แบบจำลองอะตอมบอร์ ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ แบบจำลองอะตอมบอร์ เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "c6_3": [{"level": "⭐ EASY (พื้นฐาน)", "question": "ทดสอบความเข้าใจสูตรพื้นฐานของเรื่อง ฟิสิกส์นิวเคลียร์และครึ่งชีวิต หากตัวแปรต้นเพิ่มขึ้น 2 เท่า ผลลัพธ์จะเปลี่ยนแปลงอย่างไรตามสมการ?", "choices": ["เพิ่มขึ้น 2 เท่า", "ลดลง 2 เท่า", "เพิ่มขึ้น 4 เท่า", "คงเดิม"], "answer": 0, "explanation": "จากสมการพื้นฐาน เมื่อแทนค่าตัวแปรเชิงเส้นเพิ่มขึ้น 2 เท่า ผลลัพธ์ย่อมแปรผันตรงและเพิ่มขึ้น 2 เท่า (ยกเว้นตัวแปรยกกำลังสอง)"}, {"level": "⭐⭐ MEDIUM (ประยุกต์)", "question": "ในการทดลองเรื่อง ฟิสิกส์นิวเคลียร์และครึ่งชีวิต พบว่าระบบสูญเสียพลังงานไป 20% จากสภาพอุดมคติ หากต้องการให้ได้ผลลัพธ์เท่าเดิม ต้องเพิ่มค่าเริ่มต้นกี่เปอร์เซ็นต์?", "choices": ["20%", "25%", "30%", "40%"], "answer": 1, "explanation": "หากเหลือพลังงาน 80% (0.8) การจะทำให้กลับเป็น 1 ต้องคูณด้วย 1/0.8 = 1.25 หรือเพิ่มขึ้น 25%"}, {"level": "⭐⭐⭐ HARD (วิเคราะห์)", "question": "วิเคราะห์ระบบ ฟิสิกส์นิวเคลียร์และครึ่งชีวิต ที่ถูกรบกวนด้วยแรงต้านอากาศ (สมมติให้แรงต้านแปรผันตรงกับความเร็ว $f = kv$) ความเร็วปลาย (Terminal Velocity) ของระบบนี้จะอยู่ในรูปใด?", "choices": ["$v = \\frac{mg}{k}$", "$v = \\frac{k}{mg}$", "$v = \\sqrt{\\frac{mg}{k}}$", "$v = mgk$"], "answer": 0, "explanation": "ที่ความเร็วปลาย ความเร่งเป็นศูนย์ (สมดุล) จะได้ $mg = kv$ ดังนั้น $v = \\frac{mg}{k}$"}, {"level": "💀 A-LEVEL (ตัวแปร)", "question": "(แนว A-Level) ในการวิเคราะห์ ฟิสิกส์นิวเคลียร์และครึ่งชีวิต ให้ระบบ A และ B มีมวล $m$ และ $2m$ ตามลำดับ อัตราส่วนของตัวแปรหลัก (ระบบ A ต่อ B) ตามสมการคือข้อใด หากตัวแปรอื่นคงที่?", "choices": ["1 : 1", "1 : 2", "2 : 1", "1 : 4"], "answer": 2, "explanation": "ในแนวข้อสอบ A-Level มักวัดความเข้าใจความสัมพันธ์ผกผัน หากมวลเป็น 2 เท่า ผลลัพธ์ที่แปรผกผันจะเป็น 1/2 ทำให้เกิดอัตราส่วน 2:1"}, {"level": "🎯 TPAT3 / PAT3 (วิศวกรรม)", "question": "(แนว TPAT3) วิศวกรต้องการออกแบบเครื่องจักรที่ใช้หลักการของ ฟิสิกส์นิวเคลียร์และครึ่งชีวิต เพื่อรับน้ำหนัก 5 ตัน ปัจจัยใดในสมการที่วิศวกรควร 'ลด' เพื่อให้ระบบมีประสิทธิภาพ (Efficiency) สูงสุด โดยประหยัดต้นทุนวัสดุ?", "choices": ["เพิ่มพื้นที่หน้าตัด", "ลดความยาวหรือระยะห่างระหว่างจุดหมุน", "เพิ่มมวลของโครงสร้าง", "ลดค่าความยืดหยุ่นของวัสดุ (ใช้ของแข็งขึ้น)"], "answer": 1, "explanation": "แนวคิด TPAT3 การลดระยะห่างหรือแขนโมเมนต์ (ในบริบทโครงสร้าง) ช่วยลดทอร์กหรือโมเมนต์ดัด ทำให้ลดการใช้วัสดุโครงสร้างใหญ่ๆ ได้และประหยัดต้นทุน"}], "chap1": [{"level": "🔥 FINAL BOSS: บทที่ 1 (ข้อ 1/5)", "question": "ข้อสอบรวมบท กลศาสตร์ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 1 (ข้อ 2/5)", "question": "ข้อสอบรวมบท กลศาสตร์ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 1 (ข้อ 3/5)", "question": "ข้อสอบรวมบท กลศาสตร์ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 1 (ข้อ 4/5)", "question": "ข้อสอบรวมบท กลศาสตร์ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 1 (ข้อ 5/5)", "question": "ข้อสอบรวมบท กลศาสตร์ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}], "chap2": [{"level": "🔥 FINAL BOSS: บทที่ 2 (ข้อ 1/5)", "question": "ข้อสอบรวมบท สมบัติของสสาร (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 2 (ข้อ 2/5)", "question": "ข้อสอบรวมบท สมบัติของสสาร (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 2 (ข้อ 3/5)", "question": "ข้อสอบรวมบท สมบัติของสสาร (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 2 (ข้อ 4/5)", "question": "ข้อสอบรวมบท สมบัติของสสาร (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 2 (ข้อ 5/5)", "question": "ข้อสอบรวมบท สมบัติของสสาร (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}], "chap3": [{"level": "🔥 FINAL BOSS: บทที่ 3 (ข้อ 1/5)", "question": "ข้อสอบรวมบท อุณหพลศาสตร์ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 3 (ข้อ 2/5)", "question": "ข้อสอบรวมบท อุณหพลศาสตร์ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 3 (ข้อ 3/5)", "question": "ข้อสอบรวมบท อุณหพลศาสตร์ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 3 (ข้อ 4/5)", "question": "ข้อสอบรวมบท อุณหพลศาสตร์ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 3 (ข้อ 5/5)", "question": "ข้อสอบรวมบท อุณหพลศาสตร์ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}], "chap4": [{"level": "🔥 FINAL BOSS: บทที่ 4 (ข้อ 1/5)", "question": "ข้อสอบรวมบท คลื่น เสียง แสง (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 4 (ข้อ 2/5)", "question": "ข้อสอบรวมบท คลื่น เสียง แสง (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 4 (ข้อ 3/5)", "question": "ข้อสอบรวมบท คลื่น เสียง แสง (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 4 (ข้อ 4/5)", "question": "ข้อสอบรวมบท คลื่น เสียง แสง (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 4 (ข้อ 5/5)", "question": "ข้อสอบรวมบท คลื่น เสียง แสง (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}], "chap5": [{"level": "🔥 FINAL BOSS: บทที่ 5 (ข้อ 1/5)", "question": "ข้อสอบรวมบท แม่เหล็กไฟฟ้า (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 5 (ข้อ 2/5)", "question": "ข้อสอบรวมบท แม่เหล็กไฟฟ้า (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 5 (ข้อ 3/5)", "question": "ข้อสอบรวมบท แม่เหล็กไฟฟ้า (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 5 (ข้อ 4/5)", "question": "ข้อสอบรวมบท แม่เหล็กไฟฟ้า (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 5 (ข้อ 5/5)", "question": "ข้อสอบรวมบท แม่เหล็กไฟฟ้า (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}], "chap6": [{"level": "🔥 FINAL BOSS: บทที่ 6 (ข้อ 1/5)", "question": "ข้อสอบรวมบท ฟิสิกส์ยุคใหม่ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 6 (ข้อ 2/5)", "question": "ข้อสอบรวมบท ฟิสิกส์ยุคใหม่ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 6 (ข้อ 3/5)", "question": "ข้อสอบรวมบท ฟิสิกส์ยุคใหม่ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 6 (ข้อ 4/5)", "question": "ข้อสอบรวมบท ฟิสิกส์ยุคใหม่ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}, {"level": "🔥 FINAL BOSS: บทที่ 6 (ข้อ 5/5)", "question": "ข้อสอบรวมบท ฟิสิกส์ยุคใหม่ (แนวประยุกต์ผสมผสานมิติ): ระบบประกอบด้วยกลไก 3 ส่วนเชื่อมต่อกัน หากส่วนที่ 1 ทำงานเต็มกำลัง ข้อใดบรรยายสถานะของส่วนที่ 3 ได้ถูกต้องที่สุดตามหลักการทางฟิสิกส์?", "choices": ["สถานะคงที่เนื่องจากสมดุลกล", "พลังงานลดลงแบบเอกซ์โพเนนเชียล", "เกิดการสั่นพ้อง (Resonance)", "แปรผันตามกำลังสองของเวลา"], "answer": 0, "explanation": "วิเคราะห์ภาพรวมของบท ระบบที่เชื่อมต่อกันและถ่ายโอนพลังงานเต็มพิกัดมักจะเข้าสู่จุดสมดุลใหม่ (Steady State / Equilibrium) ในระดับมัธยมปลาย"}]};
+        
+        let currentQuizQueue = [];
+        let currentQuestionIndex = 0;
+        let selectedOption = null;
+        let isAnswerChecked = false;
+        let score = 0;
+
+        // Modal Logic
+        const modal = document.getElementById('quizModal');
+        const qTitle = document.getElementById('quizTitle');
+        const qProgress = document.getElementById('quizProgress');
+        const qLevel = document.getElementById('quizLevel');
+        const qQuestion = document.getElementById('quizQuestion');
+        const qOptions = document.getElementById('quizOptions');
+        const qActionBtn = document.getElementById('quizActionBtn');
+        const qExplanation = document.getElementById('quizExplanation');
+
+        function openQuiz(topicId, title) {
+            if(!quizDB[topicId]) return alert("Database updating... Please try another topic.");
+            currentQuizQueue = quizDB[topicId];
+            currentQuestionIndex = 0;
+            score = 0;
+            
+            qTitle.innerHTML = `<span style="color:#fff">TOPIC:</span> ${title}`;
+            
+            // Set CSS var for Modal based on current section
+            let activeColor = getComputedStyle(document.documentElement).getPropertyValue('--active-theme').trim();
+            modal.style.setProperty('--active-theme', activeColor);
+            
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            
+            loadQuestion();
+        }
+
+        function closeQuiz() {
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function loadQuestion() {
+            if(currentQuestionIndex >= currentQuizQueue.length) {
+                showResults();
+                return;
+            }
+            
+            const q = currentQuizQueue[currentQuestionIndex];
+            selectedOption = null;
+            isAnswerChecked = false;
+            
+            qProgress.innerText = `${currentQuestionIndex + 1} / ${currentQuizQueue.length}`;
+            qLevel.innerHTML = q.level;
+            qQuestion.innerHTML = q.question;
+            
+            
+            qOptions.innerHTML = '';
+            q.choices.forEach((choice, index) => {
+                const div = document.createElement('div');
+                div.className = 'quiz-option';
+                div.innerHTML = `<span class="choice-label">${String.fromCharCode(65+index)}</span> <div>${choice}</div>`;
+                div.onclick = () => selectOption(index, div);
+                qOptions.appendChild(div);
+            });
+
+            
+            qExplanation.classList.remove('show');
+            qActionBtn.innerText = "CHECK ANSWER";
+            
+            
+            // Add slight delay for initial render
+            setTimeout(() => {
+                if (window.renderMathInElement) {
+                    renderMathInElement(modal, { 
+                        delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}],
+                        throwOnError: false
+                    });
+                }
+            }, 50);
+
+        }
+
+        function selectOption(index, element) {
+            if(isAnswerChecked) return;
+            selectedOption = index;
+            document.querySelectorAll('.quiz-option').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function handleQuizAction() {
+            if(!isAnswerChecked) {
+                // Check Answer
+                if(selectedOption === null) return alert("โปรดเลือกคำตอบก่อนครับ!");
+                
+                const q = currentQuizQueue[currentQuestionIndex];
+                const optionsElements = document.querySelectorAll('.quiz-option');
+                
+                if(selectedOption === q.answer) {
+                    optionsElements[selectedOption].classList.add('correct');
+                    score++;
+                } else {
+                    optionsElements[selectedOption].classList.add('wrong');
+                    optionsElements[q.answer].classList.add('correct');
+                }
+                
+                
+                qExplanation.innerHTML = `<strong>เฉลย:</strong><div>${q.explanation}</div>`;
+                qExplanation.classList.add('show');
+                
+                // Add slight delay to ensure DOM is updated before rendering math
+                setTimeout(() => {
+                    if (window.renderMathInElement) {
+                        renderMathInElement(qExplanation, { 
+                            delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}],
+                            throwOnError: false
+                        });
+                    }
+                }, 50);
+
+                
+                isAnswerChecked = true;
+                qActionBtn.innerText = currentQuestionIndex === currentQuizQueue.length - 1 ? "FINISH EXAM" : "NEXT QUESTION ➔";
+                
+            } else {
+                // Next Question
+                currentQuestionIndex++;
+                loadQuestion();
+            }
+        }
+        
+        function showResults() {
+            qLevel.innerHTML = "🏆 EXAM COMPLETED";
+            qQuestion.innerHTML = `You scored <strong style="color:var(--active-theme); font-size:1.5em">${score}</strong> out of ${currentQuizQueue.length}!`;
+            qOptions.innerHTML = '';
+            qExplanation.classList.remove('show');
+            qActionBtn.innerText = "CLOSE";
+            qActionBtn.onclick = closeQuiz;
+            
+            // Re-bind default click handler for next time
+            setTimeout(() => {
+                qActionBtn.onclick = handleQuizAction;
+            }, 500);
+        }
+
+        // --- THREE.JS BACKGROUND (AAA) ---
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050508, 0.002);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.z = 150;
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('webgl-container').appendChild(renderer.domElement);
+
+        const pCount = 250;
+        const pGeo = new THREE.BufferGeometry();
+        const pPos = new Float32Array(pCount * 3);
+        const pVel = [];
+        for (let i = 0; i < pCount; i++) {
+            pPos[i*3] = (Math.random()-0.5)*500; pPos[i*3+1] = (Math.random()-0.5)*500; pPos[i*3+2] = (Math.random()-0.5)*200;
+            pVel.push({ x:(Math.random()-0.5)*0.2, y:(Math.random()-0.5)*0.2, z:(Math.random()-0.5)*0.2 });
+        }
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        const pMat = new THREE.PointsMaterial({ color: 0x00e5ff, size: 2, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
+        const particles = new THREE.Points(pGeo, pMat);
+        scene.add(particles);
+
+        const buddy = new THREE.Mesh(
+            new THREE.IcosahedronGeometry(15, 1), 
+            new THREE.MeshBasicMaterial({ color: 0x00e5ff, wireframe: true, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending })
+        );
+        scene.add(buddy);
+
+
+        const lMat = new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.15, blending: THREE.AdditiveBlending });
+
+        let mX = 0, mY = 0;
+        document.addEventListener('mousemove', (e) => { mX = (e.clientX - window.innerWidth/2)*0.05; mY = (e.clientY - window.innerHeight/2)*0.05; });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            camera.position.x += (mX - camera.position.x)*0.02;
+            camera.position.y += (-mY - camera.position.y)*0.02;
+            camera.lookAt(scene.position);
+
+            
+            buddy.rotation.x += 0.002; buddy.rotation.y += 0.003;
+            buddy.position.x += (mX*5 - buddy.position.x)*0.01; buddy.position.y += (-mY*5 - buddy.position.y)*0.01;
+
+            const pos = particles.geometry.attributes.position.array;
+            for (let i = 0; i < pCount; i++) {
+                pos[i*3] += pVel[i].x; pos[i*3+1] += pVel[i].y; pos[i*3+2] += pVel[i].z;
+                if(Math.abs(pos[i*3])>250) pVel[i].x *= -1;
+                if(Math.abs(pos[i*3+1])>250) pVel[i].y *= -1;
+                if(Math.abs(pos[i*3+2])>100) pVel[i].z *= -1;
+            }
+            particles.geometry.attributes.position.needsUpdate = true;
+
+            const lPos = [];
+            for(let i=0; i<pCount; i++){
+                for(let j=i+1; j<pCount; j++){
+                    let dx = pos[i*3]-pos[j*3], dy = pos[i*3+1]-pos[j*3+1], dz = pos[i*3+2]-pos[j*3+2];
+                    if(dx*dx + dy*dy + dz*dz < 3000) lPos.push(pos[i*3],pos[i*3+1],pos[i*3+2], pos[j*3],pos[j*3+1],pos[j*3+2]);
+                }
+            }
+            let oldL = scene.getObjectByName('pLines');
+            if(oldL) scene.remove(oldL);
+            if(lPos.length>0){
+                let geo = new THREE.BufferGeometry();
+                geo.setAttribute('position', new THREE.Float32BufferAttribute(lPos, 3));
+                let lines = new THREE.LineSegments(geo, lMat);
+                lines.name = 'pLines'; scene.add(lines);
+            }
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // --- GSAP Scroll ---
+        gsap.registerPlugin(ScrollTrigger);
+        if (window.matchMedia("(hover: hover)").matches) { VanillaTilt.init(document.querySelectorAll(".card"), { max: 10, speed: 400, glare: true, "max-glare": 0.2, scale: 1.05 }); }
+        
+        const themes = { 'hero': 0x00e5ff, 'ch1': 0x00e5ff, 'ch2': 0x00ff66, 'ch3': 0xff5e00, 'ch4': 0xffcc00, 'ch5': 0xb026ff, 'ch6': 0xff007f };
+        const cssThemes = { 'hero': 'var(--c-mech)', 'ch1': 'var(--c-mech)', 'ch2': 'var(--c-matt)', 'ch3': 'var(--c-therm)', 'ch4': 'var(--c-wave)', 'ch5': 'var(--c-em)', 'ch6': 'var(--c-mod)' };
+        
+        document.querySelectorAll('section').forEach(sec => {
+            ScrollTrigger.create({
+                trigger: sec, start: "top 50%", end: "bottom 50%",
+                onEnter: () => updateTheme(sec.id), onEnterBack: () => updateTheme(sec.id)
+            });
+        });
+
+        function updateTheme(id) {
+            document.documentElement.style.setProperty('--active-theme', cssThemes[id]);
+            const tc = new THREE.Color(themes[id]);
+            gsap.to(pMat.color, { r: tc.r, g: tc.g, b: tc.b, duration: 1.5 });
+            
+            gsap.to(buddy.material.color, { r: tc.r, g: tc.g, b: tc.b, duration: 1.5 });
+            gsap.to(lMat.color, { r: tc.r, g: tc.g, b: tc.b, duration: 1.5 });
+            
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.target === id));
+        }
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => { window.scrollTo({ top: document.getElementById(item.dataset.target).offsetTop - 50, behavior: 'smooth' }); });
+        });
+
+        document.querySelectorAll('.gs-reveal').forEach(el => {
+            gsap.fromTo(el, { opacity: 0, y: 30 }, { scrollTrigger: { trigger: el, start: "top 85%", toggleActions: "play none none reverse" }, opacity: 1, y: 0, duration: 0.8, ease: "power3.out" });
+        });
+        document.querySelectorAll('.grid').forEach(grid => {
+            gsap.fromTo(grid.querySelectorAll('.gs-card'), { opacity: 0, y: 50 }, { scrollTrigger: { trigger: grid, start: "top 80%", toggleActions: "play none none reverse" }, opacity: 1, y: 0, duration: 0.8, stagger: 0.1, ease: "back.out(1.2)" });
+        });
+
+    </script>
+</body>
+</html>
